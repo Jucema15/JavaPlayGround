@@ -1,0 +1,5 @@
+Primeras
+lineas
+del
+archivoNuevo
+Contenido
