@@ -6,6 +6,7 @@ import zona_fit.dominio.Cliente;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,31 +27,169 @@ public class ClienteDAO implements IClienteDAO {
             while (rs.next()){
                 var cliente = new Cliente();
                 cliente.setId(rs.getInt("id"));
-                cliente.setNombre(rs.getString());
+                cliente.setNombre(rs.getString("nombre"));
+                cliente.setApellido(rs.getString("apellido"));
+                cliente.setMembresia(rs.getInt("membresia"));
+                clientes.add(cliente);
             }
         } catch (Exception e) {
             System.out.println("Error al listar clientes: " + e.getMessage());
+        }finally{
+            try{
+                con.close();
+            }catch(Exception e){
+                System.out.println("Hubo un error: " + e.getMessage());
+            }
         }
-        return null;
+        return clientes;
     }
 
     @Override
     public boolean buscarClientePorId(Cliente cliente) {
+        PreparedStatement ps;
+        ResultSet rs;
+        var con = getConexion();
+        var sql = "SELECT * FROM cliente WHERE id = ?";
+
+        try {
+            ps = con.prepareStatement(sql);
+            ps.setInt(1, cliente.getId());
+            rs = ps.executeQuery();
+
+            if(rs.next()){
+                cliente.setNombre(rs.getString("nombre"));
+                cliente.setApellido(rs.getString("apellido"));
+                cliente.setMembresia(rs.getInt("membresia"));
+                return true;
+            }
+        } catch (Exception e) {
+            System.out.println("Error al recuperar cliente id: " + e.getMessage());
+        }finally{
+            try{
+                con.close();
+            } catch (Exception e) {
+                System.out.println("Error al cerrar conexion: " + e.getMessage());
+            }
+        }
+
         return false;
     }
 
     @Override
     public boolean agregarCliente(Cliente cliente) {
+        PreparedStatement ps;
+        Connection con = getConexion();
+        String sql = "INSERT INTO cliente(nombre, apellido, membresia) "
+                + "VALUES(?, ?, ?)";
+        try {
+            ps = con.prepareStatement(sql);
+            ps.setString(1, cliente.getNombre());
+            ps.setString(2, cliente.getApellido());
+            ps.setInt(3, cliente.getMembresia());
+            ps.execute();
+            return true;
+        } catch (Exception e) {
+            System.out.println("Error al agregar el cliente: " + e.getMessage());
+        }finally {
+            try{
+                con.close();
+            } catch (Exception e) {
+                System.out.println("Error al cerrar la conexión: " + e.getMessage());
+            }
+        }
         return false;
     }
 
     @Override
     public boolean modificarCliente(Cliente cliente) {
+        PreparedStatement ps;
+        Connection con = getConexion();
+        var sql = "UPDATE cliente SET nombre=?, apellido=?, membresia=? "+
+                "WHERE id = ?";
+        try {
+            ps = con.prepareStatement(sql);
+            ps.setString(1, cliente.getNombre());
+            ps.setString(2, cliente.getApellido());
+            ps.setInt(3, cliente.getMembresia());
+            ps.setInt(4, cliente.getId());
+            ps.execute();
+            return true;
+        } catch (Exception e) {
+            System.out.println("Error al editar cliente: " + e.getMessage());
+        }finally {
+            try{
+                con.close();
+            } catch (Exception e) {
+                System.out.println("Error al cerrar conexion: " + e.getMessage());
+            }
+        }
+
         return false;
     }
 
     @Override
     public boolean eliminarCliente(Cliente cliente) {
+        PreparedStatement ps;
+        Connection con = getConexion();
+        String sql = "DELETE FROM cliente WHERE id =  ?";
+        try {
+            ps = con.prepareStatement(sql);
+            ps.setInt(1, cliente.getId());
+            ps.execute();
+            return true;
+        } catch (Exception e) {
+            System.out.println("Error al eliminar cliente: " + e.getMessage());
+        }finally {
+            try{
+                con.close();
+            } catch (Exception e) {
+                System.out.println("error al cerrar conexión: " + e.getMessage());
+            }
+        }
         return false;
+    }
+
+    public static void main(String[] args) {
+        IClienteDAO clienteDAO = new ClienteDAO();
+        //System.out.println("*** Listar clientes ***");
+        //var clientes = clienteDAO.listarClientes();
+        //clientes.forEach(System.out::println);
+
+        //var cliente1 = new Cliente(3);
+        //System.out.println("Cliente antes de la busqueda: " + cliente1);
+        //var encontrado = clienteDAO.buscarClientePorId(cliente1);
+        //if(encontrado){
+        //    System.out.println("Cliente encontrado: " + cliente1);
+        //}else {
+        //    System.out.println("No se encontro cliente: " + cliente1.getId());
+        //}
+
+        //var nuevoCliente = new Cliente("Daniel", "Ortiz", 300);
+        //var agregado = clienteDAO.agregarCliente(nuevoCliente);
+        //if(agregado){
+        //    System.out.println("Cliente agregado: " + nuevoCliente);
+        //}else{
+        //    System.out.println("No se pudo agregar el nuevo cliente");
+        //}
+
+        //var modificarCliente = new Cliente(4, "Carlos Daniel", "Ortiz", 300);
+        //var modificado = clienteDAO.modificarCliente(modificarCliente);
+        //if(modificado){
+        //    System.out.println("Cliente modificado "+ modificarCliente);
+        //}else {
+        //    System.out.println("El cliente no pudo ser modificado: " + modificarCliente);
+        //}
+
+        var clienteEliminar = new Cliente(4);
+        var eliminado = clienteDAO.eliminarCliente(clienteEliminar);
+        if(eliminado){
+            System.out.println("El cliente se ha eliminado correctamente");
+        }else {
+            System.out.println("El cliente no pudo ser eliminado");
+        }
+
+        System.out.println("*** Listar clientes ***");
+        var clientes = clienteDAO.listarClientes();
+        clientes.forEach(System.out::println);
     }
 }
